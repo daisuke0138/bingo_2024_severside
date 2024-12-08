@@ -140,5 +140,8 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 
-// express serverの起動
-app.listen(PORT, () => console.log("Server is running "));
+// // express serverの起動
+// app.listen(PORT, () => console.log("Server is running "));
+
+// デプロイ環境で使用。appをエクスポート、ローカル環境ではコメントアウトすること
+module.exports = app;
