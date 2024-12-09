@@ -23,16 +23,17 @@ const app = express();
 const prisma = new PrismaClient();
 
 // CORS設定
-app.use(cors({
-    origin: 'https://bingo-2024front.vercel.app', // 許可するオリジンを指定
-    credentials: true // クッキーを含むリクエストを許可
-}));
+// app.use(cors({
+//     origin: 'https://bingo-2024front.vercel.app', // 許可するオリジンを指定
+//     credentials: true // クッキーを含むリクエストを許可
+// }));
+app.use(cors());
 
 // jsで書いた文字列をjsonとしてexpressで使えるようにする必要があります🤗
 app.use(express.json());
 
 // PORT=は起動するURLの番号になります🤗とても重要なので今回は統一してください🤗
-const PORT = 8888;
+const PORT = process.env.PORT || 8888;
 
 // 新規ユーザーAPI
 app.post("/api/auth/signup", async (req, res) => {
