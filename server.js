@@ -1,8 +1,8 @@
 // まずはexpressというnode.jsの機能を使えるように読み込みましょう🤗
 const express = require("express");
 
-// ここで実行をし、appの中にexpressの機能を使えるようにしています🤗
-const app = express();
+//CORS対策
+const cors = require("cors");
 
 // prismaのclientの機能を使えるようにする🤗
 const { PrismaClient } = require("@prisma/client");
@@ -16,20 +16,23 @@ const jwt = require("jsonwebtoken");
 // 環境変数=秘密の鍵が使えるようにdotenvを記述して使えるようにします🤗
 require("dotenv");
 
-//CORS対策
-const cors = require("cors");
-
-app.use(cors());
-
-// PORT=は起動するURLの番号になります🤗とても重要なので今回は統一してください🤗
-const PORT = 8888;
+// ここで実行をし、appの中にexpressの機能を使えるようにしています🤗
+const app = express();
 
 // clientの機能を使えるように設定する
 const prisma = new PrismaClient();
 
+// CORS設定
+app.use(cors({
+    origin: 'https://bingo-2024front.vercel.app', // 許可するオリジンを指定
+    credentials: true // クッキーを含むリクエストを許可
+}));
+
 // jsで書いた文字列をjsonとしてexpressで使えるようにする必要があります🤗
 app.use(express.json());
 
+// PORT=は起動するURLの番号になります🤗とても重要なので今回は統一してください🤗
+const PORT = 8888;
 
 // 新規ユーザーAPI
 app.post("/api/auth/signup", async (req, res) => {
