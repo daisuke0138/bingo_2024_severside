@@ -30,6 +30,7 @@ const prisma = new PrismaClient();
 // jsで書いた文字列をjsonとしてexpressで使えるようにする必要があります🤗
 app.use(express.json());
 
+
 // 新規ユーザーAPI
 app.post("/api/auth/signup", async (req, res) => {
     const { username, password } = req.body;
