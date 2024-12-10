@@ -98,6 +98,7 @@ app.post("/api/auth/login", async (req, res) => {
     return res.json({ token });
 });
 
+// ユーザー情報取得API
 app.get("/api/auth/user", async (req, res) => {
     // リクエストヘッダーからトークンを取得
     const token = req.headers.authorization?.split(' ')[1];
@@ -119,6 +120,7 @@ app.get("/api/auth/user", async (req, res) => {
         // 検索してデータ取得
         const user = await prisma.user.findUnique({
             where: { id: userId },
+            select: { id: true, username: true }
         });
         console.log("getdata:", user);
 
