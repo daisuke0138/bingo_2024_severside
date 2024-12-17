@@ -146,6 +146,70 @@ app.post("/api/auth/logout", (req, res) => {
     return res.json({ message: "ログアウトしました" });
 });
 
+// ゲーム登録API
+app.post('/api/auth/create', async (req, res) => {
+    const { title ,userId } = req.body
+
+    // 既存のタイトルをチェックする🤗
+    const existingTitle = await prisma.game.findFirst({
+        where: { title }
+    });
+
+    if (existingTitle) {
+        return res.status(400).json({
+            error: "そのtitleは既に登録されています。別のtitle名を使用してください。",
+        });
+    }
+
+    if (!userId || !title) {
+        return res.status(400).json({ error: 'Missing userId or title' })
+    }
+
+    try {
+        const game = await prisma.game.create({
+            data: {
+                title,
+                user: { connect: { id: userId } }
+            }
+        })
+        res.status(200).json(game)
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: 'Failed to create game' })
+    }
+})
+
+// ゲームtitle取得API
+app.get("/api/auth/title", async (req, res) => {
+    // リクエストヘッダーからトークンを取得
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: "トークンが提供されていません" });
+    }
+
+    try {
+        // トークンを検証してdecodeに変数としてトークンを格納
+        const decoded = jwt.verify(token, process.env.KEY);
+        // トークンからユーザーIDを取得
+        const userId = decoded.id;
+
+        // ユーザーIDをログに出力
+        console.log("get title Userid:", userId);
+
+        // ログインユーザーが登録したタイトルを取得
+        const games = await prisma.game.findMany({
+            where: { userId },
+            select: { title: true }
+        });
+
+        res.status(200).json(games);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to retrieve titles' });
+    }
+});
+
 
 // // express serverの起動
 // app.listen(PORT, () => console.log("Server is running "));
