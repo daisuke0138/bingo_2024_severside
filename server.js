@@ -32,6 +32,17 @@ app.use(cors());
 // jsで書いた文字列をjsonとしてexpressで使えるようにする必要があります🤗
 app.use(express.json());
 
+const { createClient } = require('@supabase/supabase-js')
+const QRCode = require('qrcode')
+
+// Supabaseクライアントの初期化
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY // 注意: ANON_KEYを使用
+)
+
+
+
 // PORT=は起動するURLの番号になります🤗とても重要なので今回は統一してください🤗
 const PORT = process.env.PORT || 8888;
 
@@ -166,16 +177,60 @@ app.post('/api/auth/create', async (req, res) => {
     }
 
     try {
-        const game = await prisma.game.create({
-            data: {
-                title,
-                user: { connect: { id: userId } }
+            // 1. ゲームの作成
+            const game = await prisma.game.create({
+                data: {
+                    title,
+                    user: { connect: { id: userId } }
+                }
+            })
+
+            // 2. ゲームURLの生成
+            const gameUrl = `https://bingo-2024front.vercel.app/game/${game.id}`
+
+            // 3. QRコードの生成
+            const qrBuffer = await QRCode.toBuffer(gameUrl, {
+                width: 300,
+                margin: 2,
+                errorCorrectionLevel: 'H'
+            })
+
+            // 4. QRコード画像をSupabaseにアップロード
+            const fileName = `game-${game.id}.png`
+            const { data: uploadData, error: uploadError } = await supabase
+                .storage
+                .from('QR_code')
+                .upload(fileName, qrBuffer, {
+                    contentType: 'image/png',
+                    upsert: true
+                })
+            if (uploadError) {
+                console.error('QRコードのアップロードエラー:', uploadError)
+                throw new Error('QRコードの生成に失敗しました')
             }
-        })
-        res.status(200).json(game)
+
+            // 5. QRコードの公開URLを取得
+            const { data: { publicUrl } } = supabase
+                .storage
+                .from('qr_code')
+                .getPublicUrl(fileName)
+
+            // 6. ゲーム情報をQRコードURLで更新
+            const updatedGame = await prisma.game.update({
+                where: { id: game.id },
+                data: { qrCodeUrl: publicUrl }
+            })
+            res.status(200).json({
+                ...updatedGame,
+                gameUrl,
+                qrCodeUrl: publicUrl
+            })
+
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ error: 'Failed to create game' })
+            console.error(error)
+            res.status(500).json({
+                error: 'ゲームの作成に失敗しました。もう一度お試しください。'
+            })
     }
 })
 
@@ -195,18 +250,43 @@ app.get("/api/auth/title", async (req, res) => {
         const userId = decoded.id;
 
         // ユーザーIDをログに出力
-        console.log("get title Userid:", userId);
+        console.log("get title created Userid :", userId);
 
         // ログインユーザーが登録したタイトルを取得
         const games = await prisma.game.findMany({
             where: { userId },
-            select: { title: true }
+            select: { id: true, title: true }
         });
 
         res.status(200).json(games);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Failed to retrieve titles' });
+        res.status(500).json({ error: 'タイトルの取得に失敗しました' });
+    }
+});
+
+// ゲーム選択API
+app.post('/api/auth/selectgame', async (req, res) => {
+    const { gameId } = req.body;
+
+    try {
+        const game = await prisma.game.findUnique({
+            where: { id: parseInt(gameId) },
+            select: {
+                id: true,
+                title: true,
+                qrCodeUrl: true
+            }
+        });
+
+        if (!game) {
+            return res.status(404).json({ error: 'Game not found' });
+        }
+
+        res.status(200).json(game);
+    } catch (error) {
+        console.error('Error fetching game data:', error);
+        res.status(500).json({ error: 'Failed to fetch game data' });
     }
 });
 

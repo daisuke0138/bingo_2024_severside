@@ -24,5 +24,6 @@ model Game {
   id     Int    @id @default(autoincrement())
   userId Int
   title  String
+  qrCodeUrl String?
   user   User   @relation(fields: [userId], references: [id])
 }
