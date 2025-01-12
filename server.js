@@ -184,9 +184,9 @@ app.post('/api/auth/create', async (req, res) => {
                     user: { connect: { id: userId } }
                 }
             })
-
-            // 2. ゲームURLの生成
-            const gameUrl = `https://bingo-2024front.vercel.app/game/${game.id}`
+        
+            // 2. ゲームURLの生成 (game.idとtitleをクエリパラメータとして追加)
+            const gameUrl = `https://bingo-2024front.vercel.app/signupplayer/${game.id}?title=${encodeURIComponent(title)}`;
 
             // 3. QRコードの生成
             const qrBuffer = await QRCode.toBuffer(gameUrl, {
@@ -212,10 +212,10 @@ app.post('/api/auth/create', async (req, res) => {
             // 5. QRコードの公開URLを取得
             const { data: { publicUrl } } = supabase
                 .storage
-                .from('qr_code')
+                .from('QR_code')
                 .getPublicUrl(fileName)
 
-            // 6. ゲーム情報をQRコードURLで更新
+            // 6. ゲーム情報をQRコードURLをdbへ更新
             const updatedGame = await prisma.game.update({
                 where: { id: game.id },
                 data: { qrCodeUrl: publicUrl }
@@ -292,7 +292,7 @@ app.post('/api/auth/selectgame', async (req, res) => {
 
 
 // // express serverの起動
-// app.listen(PORT, () => console.log("Server is running "));
+app.listen(PORT, () => console.log("Server is running "));
 
 // デプロイ環境で使用。appをエクスポート、ローカル環境ではコメントアウトすること
-module.exports = app;
+// module.exports = app;
